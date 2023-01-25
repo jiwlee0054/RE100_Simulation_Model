@@ -15,10 +15,11 @@ def solve_optimal_portfolio(options, IFN):
     if options.run_simulation_flag:
         input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
         result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name)
-        
+
         if options.parallel_processing_flag:
             with open(f'{options.loc_pp_result}/RE_flag_{options.customize_achievement_flag}, '
-                      f'sg_ratio_{options.customize_self_generation_ratio}/{options.scenario_num}.json', 'w') as outfile:
+                      f'sg_ratio_{options.customize_self_generation_ratio}/{options.scenario_num}.json',
+                      'w') as outfile:
                 json.dump(result, outfile, indent=4)
 
         return result
@@ -64,13 +65,13 @@ def solve_optimal_portfolio(options, IFN):
 
         loc_plot = f"{options.loc_plot}/{options.date_result}/{opt}"
         loc_excel = f"{options.loc_excel}/{options.date_result}/{opt}"
-        
+
         result_dict_s = dict()
         files = [f for f in os.listdir(f"{options.loc_pp_result}") if '.json' in f]
         for f in files:
             s = f.split('.')[0]
             result_dict_s[s] = dict()
-            
+
             print(f'file reading scenario_number : {s}')
 
             with open(f'{options.loc_pp_result}/{s}.json', 'r') as f:
@@ -121,7 +122,7 @@ def solve_optimal_portfolio(options, IFN):
             year1 = options.year1
 
             x_data = np.arange(year0, year1 + 1, 1)
-            
+
             ppa_pv_df = pd.DataFrame(columns=x_data, index=list(result_dict_s.keys()))
             ppa_onshore_df = pd.DataFrame(columns=x_data, index=list(result_dict_s.keys()))
             ppa_eac_df = pd.DataFrame(columns=x_data, index=list(result_dict_s.keys()))
@@ -138,10 +139,10 @@ def solve_optimal_portfolio(options, IFN):
             ppa_eac_df.to_excel(f"{loc_excel}/인증서_단가.xlsx")
             print(f"인증서_단가.xlsx 완료")
 
-        if options.plot_optimal_portfolio_flag:                 
+        if options.plot_optimal_portfolio_flag:
             p = lib.PLOT.PlotOpt()
             fig_name = 'Optimal portfolios for renewable electricity sourcing by year'
-            
+
             item_num = 6
             year0 = options.year0
             year1 = options.year1
@@ -175,7 +176,7 @@ def solve_optimal_portfolio(options, IFN):
 
                         y_data[y_tilda, 4] += result_dict_s[s]['p_eac_y'][f"{y}"] / demand_y
                         y_data[y_tilda, 5] += sum(input_parameters_pulp.ee_y_d_h[y, d, h]
-                                                  for d in input_parameters_pulp.set_d 
+                                                  for d in input_parameters_pulp.set_d
                                                   for h in input_parameters_pulp.set_h) / demand_y
 
             y_data /= len(result_dict_s.keys())
@@ -203,7 +204,7 @@ def solve_optimal_portfolio(options, IFN):
                     label, color = '기업 PPA (Onshore Wind)', 'deepskyblue'
                 elif num == 4:
                     label, color = '인증서 구매', 'b'
-                
+
                 if num == 0:
                     p.axes.bar(x_data, y_data[:, num], width=0.3, color=color, label=label)
                 elif num == 1 or num == 5:
@@ -230,7 +231,7 @@ def solve_optimal_portfolio(options, IFN):
             unit = options.unit
             year0 = options.year0
             year1 = options.year1
-            
+
             x_data = np.arange(year0, year1 + 1, 1)
             y_data = np.zeros((year1 - year0 + 1, item_num))
             for s in result_dict_s.keys():
@@ -259,8 +260,10 @@ def solve_optimal_portfolio(options, IFN):
                                                result_dict_s[s]['lambda_OPEX_onshore_y'][f"{y}"])
 
                     # 한전 기본요금
-                    if sum(input_parameters_pulp.demand_y_d_h[y, d, h] for d in input_parameters_pulp.set_d for h in input_parameters_pulp.set_h) > 0:
-                        y_data[y_tilda, 2] += input_parameters_pulp.lambda_tariff_fixed_won_per_kW * options.load_cap * 12
+                    if sum(input_parameters_pulp.demand_y_d_h[y, d, h] for d in input_parameters_pulp.set_d for h in
+                           input_parameters_pulp.set_h) > 0:
+                        y_data[
+                            y_tilda, 2] += input_parameters_pulp.lambda_tariff_fixed_won_per_kW * options.load_cap * 12
                     else:
                         pass
                     # 한전 전력량요금
@@ -299,16 +302,17 @@ def solve_optimal_portfolio(options, IFN):
                     else:
                         # 태양광 기업PPA 재생에너지 사용요금
                         y_data[y_tilda, 8] += (sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
-                                                  result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
-                                                  for d in input_parameters_pulp.set_d
-                                                  for h in input_parameters_pulp.set_h) *
+                                                   result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
+                                                   for d in input_parameters_pulp.set_d
+                                                   for h in input_parameters_pulp.set_h) *
                                                result_dict_s[s]['lambda_PPA_pv_y'][f"{y}"] + y_data[y_tilda - 1, 1])
                         # 풍력 기업PPA 재생에너지 사용요금
                         y_data[y_tilda, 9] += (sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
-                                                  result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
-                                                  for d in input_parameters_pulp.set_d
-                                                  for h in input_parameters_pulp.set_h) *
-                                               result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"] + y_data[y_tilda - 1, 1])
+                                                   result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
+                                                   for d in input_parameters_pulp.set_d
+                                                   for h in input_parameters_pulp.set_h) *
+                                               result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"] + y_data[
+                                                   y_tilda - 1, 1])
 
                     # 기업PPA 손실반영금
                     y_data[y_tilda, 10] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
@@ -316,30 +320,30 @@ def solve_optimal_portfolio(options, IFN):
                                                for d in input_parameters_pulp.set_d
                                                for h in input_parameters_pulp.set_h) * \
                                            result_dict_s[s]['lambda_loss_payment_y'][f"{y}"]
-                    
+
                     # 기업PPA 망 사용요금
                     y_data[y_tilda, 11] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
-                                              result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
-                                              for d in input_parameters_pulp.set_d 
-                                              for h in input_parameters_pulp.set_h) * \
-                                          result_dict_s[s]['lambda_nt_c_y'][f"{y}"]
-                    
+                                               result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                                               for d in input_parameters_pulp.set_d
+                                               for h in input_parameters_pulp.set_h) * \
+                                           result_dict_s[s]['lambda_nt_c_y'][f"{y}"]
+
                     # 기업PPA 망 기본요금
                     y_data[y_tilda, 12] += result_dict_s[s]['c_ppa_network_basic_y'][f"{y}"]
 
                     # 기업PPA 부가정산금
                     y_data[y_tilda, 13] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
-                                              result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
-                                              for d in input_parameters_pulp.set_d 
-                                              for h in input_parameters_pulp.set_h) * \
-                                          result_dict_s[s]['lambda_AS_payment_y'][f"{y}"]
+                                               result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                                               for d in input_parameters_pulp.set_d
+                                               for h in input_parameters_pulp.set_h) * \
+                                           result_dict_s[s]['lambda_AS_payment_y'][f"{y}"]
 
                     # 기업PPA 복지및특례요금
                     y_data[y_tilda, 14] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
-                                              result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
-                                              for d in input_parameters_pulp.set_d 
-                                              for h in input_parameters_pulp.set_h) * \
-                                          result_dict_s[s]['lambda_welfare_y'][f"{y}"]
+                                               result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                                               for d in input_parameters_pulp.set_d
+                                               for h in input_parameters_pulp.set_h) * \
+                                           result_dict_s[s]['lambda_welfare_y'][f"{y}"]
                     # 기업PPA 부가가치세
                     y_data[y_tilda, 15] += result_dict_s[s]['c_commission_ppa_y'][f"{y}"]
 
@@ -357,7 +361,7 @@ def solve_optimal_portfolio(options, IFN):
 
             y_data /= len(result_dict_s.keys())
             y_data /= unit
-            col_list = ['태양광 자가발전 설치 및 운영비용', 
+            col_list = ['태양광 자가발전 설치 및 운영비용',
                         '육상풍력 자가발전 설치 및 운영비용',
                         '한전 기본요금',
                         '한전 전력량요금',
@@ -392,27 +396,27 @@ def solve_optimal_portfolio(options, IFN):
             for s in result_dict_s.keys():
                 for y in input_parameters_pulp.set_y:
                     y_tilda = y - year0
-                    y_data[y_tilda, 0] += result_dict_s[s]['capacity_pv_y'][f"{y}"]               # kW
-                    y_data[y_tilda, 1] += result_dict_s[s]['capacity_onshore_y'][f"{y}"]          # kW
+                    y_data[y_tilda, 0] += result_dict_s[s]['capacity_pv_y'][f"{y}"]  # kW
+                    y_data[y_tilda, 1] += result_dict_s[s]['capacity_onshore_y'][f"{y}"]  # kW
                     y_data[y_tilda, 2] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
-                                              for h in input_parameters_pulp.set_h)             # kWh
+                                              for h in input_parameters_pulp.set_h)  # kWh
                     y_data[y_tilda, 3] += sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
-                                              for h in input_parameters_pulp.set_h)             # kWh
+                                              for h in input_parameters_pulp.set_h)  # kWh
                     y_data[y_tilda, 4] += sum(result_dict_s[s]['p_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
-                                              for h in input_parameters_pulp.set_h)             # kWh
-                    y_data[y_tilda, 5] += result_dict_s[s]['p_eac_y'][f"{y}"]                   # kWh
+                                              for h in input_parameters_pulp.set_h)  # kWh
+                    y_data[y_tilda, 5] += result_dict_s[s]['p_eac_y'][f"{y}"]  # kWh
 
             y_data /= len(result_dict_s.keys())
-            col_list = ['태양광 자가발전 용량(kW)', '육상풍력 자가발전 용량(kW)', '기업PPA(PV) 조달량 (kWh)', 
+            col_list = ['태양광 자가발전 용량(kW)', '육상풍력 자가발전 용량(kW)', '기업PPA(PV) 조달량 (kWh)',
                         '기업PPA(풍력) 조달량 (kWh)', '보완공급 조달량 (kWh)', '인증서 구매량 (kWh)']
 
             y_data_df = pd.DataFrame(y_data, columns=col_list, index=x_data)
             y_data_df.to_excel(f"{loc_excel}/연도별 최적 RE100 달성을 위한 조달 및 설치량.xlsx")
             print(f"연도별 최적 RE100 달성을 위한 조달 및 설치량.xlsx 완료")
-        
+
         if options.excel_unit_price_by_year_flag:
             year0 = options.year0
             year1 = options.year1
@@ -421,9 +425,9 @@ def solve_optimal_portfolio(options, IFN):
             for s in result_dict_s.keys():
                 for y in input_parameters_pulp.set_y:
                     y_tilda = y - year0
-                    demand_amount = sum(input_parameters_pulp.demand_y_d_h[y, d, h] 
-                                           for d in input_parameters_pulp.set_d 
-                                           for h in input_parameters_pulp.set_h) 
+                    demand_amount = sum(input_parameters_pulp.demand_y_d_h[y, d, h]
+                                        for d in input_parameters_pulp.set_d
+                                        for h in input_parameters_pulp.set_h)
                     if demand_amount == 0:
                         y_data[y_tilda] += 0
                     else:
@@ -442,7 +446,7 @@ def solve_optimal_portfolio(options, IFN):
                                             input_parameters_pulp.lambda_ee_y[y]) / demand_amount
             # unit price 산출 비용/수요량/year = 원/kWh/year
             y_data /= len(result_dict_s.keys())
-            
+
             y_data_df = pd.DataFrame(y_data.reshape(1, -1), columns=x_data, index=['단가(원/kWh)'])
             y_data_df.to_excel(f"{loc_excel}/연간 RE100 달성을 위한 평균 단가.xlsx")
             print(f"연간 RE100 달성을 위한 평균 단가.xlsx 완료")
@@ -468,7 +472,7 @@ def solve_optimal_portfolio(options, IFN):
                                        result_dict_s[s]['c_commission_kepco_y'][f"{y}"] + \
                                        result_dict_s[s]['c_commission_ppa_y'][f"{y}"] - \
                                        result_dict_s[s]['c_residual_y'][f"{y}"]
-            
+
             y_data /= len(result_dict_s.keys())
             y_data /= unit
             p.set_frame()
@@ -512,7 +516,7 @@ def solve_optimal_portfolio(options, IFN):
                                               for h in input_parameters_pulp.set_h) / IFN.Aonshore_file.sum()
 
             y_data /= len(result_dict_s.keys())
-            y_data /= unit      # 단위 MW
+            y_data /= unit  # 단위 MW
             y_data_df = pd.DataFrame(y_data, columns=['PV 발전사업자 용량', '풍력 발전사업자 용량'], index=x_data)
 
             y_data_df.to_excel(f"{loc_excel}/기업PPA 계약용량 산정.xlsx")
@@ -535,17 +539,21 @@ def solve_optimal_portfolio(options, IFN):
             count = 1
             for s in result_dict_s.keys():
                 if count == 1:
-                    p1.axes.plot(x_data, result_dict_s[s]['lambda_PPA_pv_y'].values(), color='goldenrod', label='기업 PPA (PV) 단가')
-                    p2.axes.plot(x_data, result_dict_s[s]['lambda_PPA_onshore_y'].values(), color='deepskyblue', label='기업 PPA (Onshore Wind) 단가')
+                    p1.axes.plot(x_data, result_dict_s[s]['lambda_PPA_pv_y'].values(), color='goldenrod',
+                                 label='기업 PPA (PV) 단가')
+                    p2.axes.plot(x_data, result_dict_s[s]['lambda_PPA_onshore_y'].values(), color='deepskyblue',
+                                 label='기업 PPA (Onshore Wind) 단가')
                     p3.axes.plot(x_data, result_dict_s[s]['lambda_eac_y'].values(), color='b', label='인증서 구매')
 
-                    tariff_y_data = [result_dict_s[s]['lambda_tariff_y_d_h'][k]['1']['1'] for k in result_dict_s[s]['lambda_tariff_y_d_h'].keys()]
+                    tariff_y_data = [result_dict_s[s]['lambda_tariff_y_d_h'][k]['1']['1'] for k in
+                                     result_dict_s[s]['lambda_tariff_y_d_h'].keys()]
                     p4.axes.plot(x_data, tariff_y_data, color='dimgray', label='산업용 전기요금 단가')
                 else:
                     p1.axes.plot(x_data, result_dict_s[s]['lambda_PPA_pv_y'].values(), color='goldenrod')
                     p2.axes.plot(x_data, result_dict_s[s]['lambda_PPA_onshore_y'].values(), color='deepskyblue')
                     p3.axes.plot(x_data, result_dict_s[s]['lambda_eac_y'].values(), color='b')
-                    tariff_y_data = [result_dict_s[s]['lambda_tariff_y_d_h'][k]['1']['1'] for k in result_dict_s[s]['lambda_tariff_y_d_h'].keys()]
+                    tariff_y_data = [result_dict_s[s]['lambda_tariff_y_d_h'][k]['1']['1'] for k in
+                                     result_dict_s[s]['lambda_tariff_y_d_h'].keys()]
                     p4.axes.plot(x_data, tariff_y_data, color='dimgray')
                 count += 1
             p1.axes.legend(loc='best', ncol=2, fontsize=20, frameon=True, shadow=True)
@@ -563,7 +571,7 @@ def solve_optimal_portfolio(options, IFN):
             print(f"연도별 옵션별 단위가격.png 완료")
 
     if options.etc_plot_demand_pattern_flag:
-        row = 59        # 3월1일 행
+        row = 59  # 3월1일 행
         p = lib.PLOT.PlotOpt()
         for i in list(IFN.demand_factor.keys()):
             title = i
@@ -576,7 +584,7 @@ def solve_optimal_portfolio(options, IFN):
             p.axes.tick_params(axis='y', labelsize=25)
             p.axes.plot(x_data, y_data)
             p.save_fig(options.loc_plot, title)
-    
+
     if options.result_BAU_analysis_flag:
         input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
         if options.customize_exemption_flag:
@@ -607,27 +615,28 @@ def solve_optimal_portfolio(options, IFN):
                 for y in input_parameters_pulp.set_y:
                     y_tilda = y - year0
                     c_tariff_used = sum([input_parameters_pulp.demand_y_d_h[y, d, h] *
-                                    (result_dict_s[s]['lambda_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
-                                     result_dict_s[s]['lambda_climate_y'][f"{y}"] +
-                                     result_dict_s[s]['lambda_fuel_adjustment_y'][f"{y}"])
-                                    for d in input_parameters_pulp.set_d
-                                    for h in input_parameters_pulp.set_h])
+                                         (result_dict_s[s]['lambda_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
+                                          result_dict_s[s]['lambda_climate_y'][f"{y}"] +
+                                          result_dict_s[s]['lambda_fuel_adjustment_y'][f"{y}"])
+                                         for d in input_parameters_pulp.set_d
+                                         for h in input_parameters_pulp.set_h])
                     c_tariff_base = input_parameters_pulp.lambda_tariff_fixed_won_per_kW * options.load_cap * 12
                     c_funding_tariff = (c_tariff_used + c_tariff_base) * input_parameters_pulp.ratio_tariff_funding_y[y]
-                    c_commission_kepco = (c_tariff_used + c_tariff_base) * input_parameters_pulp.ratio_commission_tariff_ratio_per_won_y[y]
-                    
+                    c_commission_kepco = (c_tariff_used + c_tariff_base) * \
+                                         input_parameters_pulp.ratio_commission_tariff_ratio_per_won_y[y]
+
                     if c_tariff_used > 0:
                         y_data[y_tilda] += c_tariff_used + c_tariff_base + c_funding_tariff + c_commission_kepco
                     else:
                         y_data[y_tilda] += 0
-                        
+
             y_data /= len(result_dict_s.keys())
             y_data /= options.unit
-            
+
             y_data_df = pd.DataFrame(y_data.reshape(1, -1), columns=x_data, index=['Average Cost (억원)'])
             y_data_df.to_excel(f"{loc_excel}/BAU시나리오_연간 평균 RE100 달성비용.xlsx")
             print(f"BAU시나리오_연간 평균 RE100 달성비용.xlsx 완료")
-            
+
             if options.plot_yearly_cost_in_BAUscen_flag:
                 y_min = math.floor(np.min(y_data))
                 y_max = math.ceil(np.max(y_data))
@@ -651,9 +660,9 @@ def solve_optimal_portfolio(options, IFN):
                 y_data_2 = np.zeros((year1 - year0 + 1))
                 for y in input_parameters_pulp.set_y:
                     y_tilda = y - year0
-                    demand_amount = sum(input_parameters_pulp.demand_y_d_h[y, d, h] 
-                                           for d in input_parameters_pulp.set_d 
-                                           for h in input_parameters_pulp.set_h) 
+                    demand_amount = sum(input_parameters_pulp.demand_y_d_h[y, d, h]
+                                        for d in input_parameters_pulp.set_d
+                                        for h in input_parameters_pulp.set_h)
                     if demand_amount == 0:
                         y_data_2[y_tilda] = 0
                     else:
@@ -662,7 +671,7 @@ def solve_optimal_portfolio(options, IFN):
                 y_data_df = pd.DataFrame(y_data_2.reshape(1, -1), columns=x_data, index=['단가(원/kWh)'])
                 y_data_df.to_excel(f"{loc_excel}/BAU시나리오_연간 RE100 달성을 위한 평균 단가.xlsx")
                 print(f"BAU시나리오_연간 RE100 달성을 위한 평균 단가.xlsx 완료")
-    
+
     if options.result_integration_analysis_flag:
         if options.customize_exemption_flag:
             opt = '부가비용면제'
@@ -673,11 +682,12 @@ def solve_optimal_portfolio(options, IFN):
         loc_excel = f"{options.loc_excel}/{options.date_result}/{opt}"
 
         p_unit_avg_y = pd.read_excel(f"{loc_excel}/연간 RE100 달성을 위한 평균 단가.xlsx", sheet_name='Sheet1', index_col=0)
-        p_unit_avg_BAU_y = pd.read_excel(f"{loc_excel}/BAU시나리오_연간 RE100 달성을 위한 평균 단가.xlsx", sheet_name='Sheet1', index_col=0)
+        p_unit_avg_BAU_y = pd.read_excel(f"{loc_excel}/BAU시나리오_연간 RE100 달성을 위한 평균 단가.xlsx", sheet_name='Sheet1',
+                                         index_col=0)
 
         y_min = math.floor(max(p_unit_avg_y.min().min(), p_unit_avg_BAU_y.min().min()))
         y_max = math.ceil(max(p_unit_avg_y.max().max(), p_unit_avg_BAU_y.max().max()))
-        
+
         year0 = options.year0
         year1 = options.year1
         x_data = np.arange(year0, year1 + 1, 1)
@@ -691,19 +701,19 @@ def solve_optimal_portfolio(options, IFN):
         p.axes.set_ylabel('단위가격(원/kWh)', fontsize=30)
         p.axes.tick_params(axis='x', labelsize=20)
         p.axes.tick_params(axis='y', labelsize=25)
-        
+
         p.axes.plot(x_data, p_unit_avg_y.values.reshape(-1), label='RE100 scenario', c='k')
         p.axes.plot(x_data, p_unit_avg_BAU_y.values.reshape(-1), label='BAU scenario', c='r', linestyle='--')
         p.axes.legend(loc='best', ncol=2, fontsize=20, frameon=True, shadow=True)
         fig_name = 'Average unit price by year'
         p.save_fig(loc_plot, fig_name)
         print(f"{fig_name}.png 완료")
-    
-    
+
+
 if __name__ == '__main__':
     start = time.time()
     options = para.ProbOptions()
-    
+
     if options.parallel_processing_flag:
         loc_pp = f"{options.loc_result}/{options.date_result}"
         file_pp = 'result_profile.pkl'
