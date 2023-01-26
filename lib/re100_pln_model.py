@@ -93,7 +93,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     p_tariff_y_d_h = lp.LpVariable.dicts("p_tariff_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
     p_ppa_pv_y_d_h = lp.LpVariable.dicts("p_ppa_pv_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
     p_ppa_onshore_y_d_h = lp.LpVariable.dicts("p_ppa_onshore_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
-    capacity_ppa_dummy_y = lp.LpVariable.dicts("capacity_ppa_dummy_y", set_y, lowBound=0, cat='Continuous')
+    capacity_cs_contract_y = lp.LpVariable.dicts("capacity_cs_contract_y", set_y, lowBound=0, cat='Continuous')
 
     p_eac_y = lp.LpVariable.dicts("p_eac_y", set_y, lowBound=0, cat='Continuous')
     capacity_pv_y = lp.LpVariable.dicts("capacity_pv_y", set_y, lowBound=0, cat='Continuous')
@@ -174,7 +174,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
                                                  lambda_fuel_adjustment_y[y]) for d, h in set_d_h)
 
         # 보완공급 (dema 비용)
-        model += c_tariff_dema_y[y] == lambda_tariff_fixed_won_per_kW * capacity_ppa_dummy_y[y] * 12
+        model += c_tariff_dema_y[y] == lambda_tariff_fixed_won_per_kW * capacity_cs_contract_y[y] * 12
 
         # 인증서 비용
         model += c_eac_y[y] == p_eac_y[y] * lambda_eac_y[y]
@@ -218,7 +218,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
 
     # PPA 조달 제약
     for y, d, h in set_y_d_h:
-        model += capacity_ppa_dummy_y[y] >= p_ppa_pv_y_d_h[y, d, h] + p_ppa_onshore_y_d_h[y, d, h] - max([v for k, v in demand_y_d_h.items() if k[0] == y])
+        model += capacity_cs_contract_y[y] >= max([v for k, v in demand_y_d_h.items() if k[0] == y]) - (p_ppa_pv_y_d_h[y, d, h] + p_ppa_onshore_y_d_h[y, d, h])
 
         if demand_y_d_h[y, d, h] - ee_y_d_h[y, d, h] > Apv_d_h[d, h] * cap_max_ppa_pv_y[y]:
             model += p_ppa_pv_y_d_h[y, d, h] <= (Apv_d_h[d, h] * cap_max_ppa_pv_y[y]) * u_y[y]
@@ -291,6 +291,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
 
     capacity_pv_y_dict = dict()
     capacity_onshore_y_dict = dict()
+    capacity_cs_contract_y_dict = dict()
 
     c_sg_y_dict = dict()
     c_tariff_used_y_dict = dict()
@@ -316,6 +317,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         p_eac_y_dict[y] = p_eac_y[y].value()
         capacity_pv_y_dict[y] = capacity_pv_y[y].value()
         capacity_onshore_y_dict[y] = capacity_onshore_y[y].value()
+        capacity_cs_contract_y_dict[y] = capacity_cs_contract_y[y].value()
         c_sg_y_dict[y] = c_sg_y[y].value()
         c_tariff_used_y_dict[y] = c_tariff_used_y[y].value()
         c_tariff_dema_y_dict[y] = c_tariff_dema_y[y].value()
@@ -363,7 +365,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     result['p_eac_y'] = p_eac_y_dict
     result['capacity_pv_y'] = capacity_pv_y_dict
     result['capacity_onshore_y'] = capacity_onshore_y_dict
-
+    result['capacity_cs_contract_y'] = capacity_cs_contract_y_dict
     result['c_sg_y'] = c_sg_y_dict
     result['c_tariff_used_y'] = c_tariff_used_y_dict
     result['c_tariff_dema_y'] = c_tariff_dema_y_dict

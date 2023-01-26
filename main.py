@@ -758,6 +758,6 @@ if __name__ == '__main__':
     solver_name = 'cplex'
     IFN = para.ReadInputData(options)
 
-    result = solve_optimal_portfolio(options, IFN)
+    # result = solve_optimal_portfolio(options, IFN)
 
     print(f"run time : {time.time() - start}")

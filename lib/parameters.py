@@ -74,6 +74,7 @@ class ProbOptions:
 
         self.loc_result = f"D:/RE100_NEXTgroup/result"
         self.date_result = "230126"
+
         self.set_result_loc(opt='부가비용')
         self.loc_plot = f"D:/RE100_NEXTgroup/plot"
         self.loc_excel = f"D:/RE100_NEXTgroup/excel"
