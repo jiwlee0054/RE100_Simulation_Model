@@ -73,10 +73,10 @@ class ProbOptions:
         self.customize_self_generation_ratio = 1  # %
 
         self.loc_result = f"D:/RE100_NEXTgroup/result"
-        self.date_result = "230105"
+        self.date_result = "230126"
         self.set_result_loc(opt='부가비용')
-        self.loc_plot = f"../plot"
-        self.loc_excel = f"../excel"
+        self.loc_plot = f"D:/RE100_NEXTgroup/plot"
+        self.loc_excel = f"D:/RE100_NEXTgroup/excel"
 
         self.year0 = 2022
         self.year1 = 2040
@@ -84,7 +84,8 @@ class ProbOptions:
         self.load_cap = 100000  # 기업 최대 소비전력 kW
         self.gaprel = 0.001
         self.contract_voltage = 154
-        self.tariff_type = '기업PPA,을,고압B' if self.contract_voltage == 154 else '기업PPA,을,고압C' if self.contract_voltage >= 345 else '기업PPA,을,고압A'
+        self.tariff_ppa = '기업PPA,고압B' if self.contract_voltage == 154 else '기업PPA,고압C' if self.contract_voltage >= 345 else '기업PPA,고압A'
+        self.tariff_bau = '을,고압B' if self.contract_voltage == 154 else '을,고압C' if self.contract_voltage >= 345 else '을,고압A'
 
         self.unit = 10 ** 8
 
@@ -169,7 +170,7 @@ class ReadInputData:
         Aonshore_raw = Aonshore_raw['Sheet1'].loc[:, 1:24] / Aonshore_raw['Sheet2'].iloc[0].iloc[0]
         self.Aonshore_raw = Aonshore_raw.values
 
-        self.tariff_table = pd.read_excel(f"{options.loc_tariff_table}", sheet_name=options.tariff_type)
+        self.tariff_table_ppa = pd.read_excel(f"{options.loc_tariff_table}", sheet_name=options.tariff_ppa, index_col=0)
         self.tariff_avg_2020 = pd.read_excel(f"{options.loc_tariff_avg_2020}", sheet_name=options.country)
         self.tariff_rate = pd.read_excel(f"{options.loc_tariff_rate}", sheet_name=options.country)
         self.rec_avg = pd.read_excel(f"{options.loc_rec_avg}", sheet_name=options.country)
@@ -268,21 +269,16 @@ class ParameterPulpFrom:
 
         self.tariff_average = IFN.tariff_avg_2020['won/kWh'].iloc[0]  # 2020년 평균 산업용 전기요금 단가, 환율: 1342.81원/$
         self.tariff_y = self.cal_trend(options, 'linear', self.tariff_average, self.rate_tariff, 1)
-        self.lambda_tariff_y_d_h = self.cal_tariff_table(options, IFN, self.tariff_y,
-                                                         self.tariff_average)  # 보완공급. 출처: 보완공급약관, 기본공급약관
-        self.lambda_tariff_fixed_won_per_kW = 9980 if options.contract_voltage == 154 else 9670 if options.contract_voltage >= 345 else 10020
+        self.lambda_tariff_ppa_y_d_h = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_table_ppa)  # 보완공급
+        self.lambda_tariff_fixed_won_per_kW = IFN.tariff_table_ppa.loc['기본요금', :].iloc[0]
 
         self.p_pv_install = IFN.inst_cost_avg[IFN.inst_cost_avg['type'] == 'pv']['won/kw'].iloc[0]
-        self.lambda_CAPEX_PV_y = self.cal_trend(options, 'linear', self.p_pv_install, self.rate_pv,
-                                                1)  # 출처: IRENA (엑셀참고)
-        self.lambda_OPEX_PV_y = self.cal_trend(options, 'linear', self.p_pv_install * 0.02, self.rate_pv,
-                                               1)  # CAPEX의 3% 가정
+        self.lambda_CAPEX_PV_y = self.cal_trend(options, 'linear', self.p_pv_install, self.rate_pv, 1)  # 출처: IRENA (엑셀참고)
+        self.lambda_OPEX_PV_y = self.cal_trend(options, 'linear', self.p_pv_install * 0.02, self.rate_pv, 1)  # CAPEX의 3% 가정
 
         self.p_onshore_install = IFN.inst_cost_avg[IFN.inst_cost_avg['type'] == 'onshore']['won/kw'].iloc[0]
-        self.lambda_CAPEX_onshore_y = self.cal_trend(options, 'linear', self.p_onshore_install, self.rate_onshore,
-                                                     1)  # 출처: IRENA (엑셀참고)
-        self.lambda_OPEX_onshore_y = self.cal_trend(options, 'linear', self.p_onshore_install * 0.02, self.rate_onshore,
-                                                    1)  # CAPEX의 3% 가정
+        self.lambda_CAPEX_onshore_y = self.cal_trend(options, 'linear', self.p_onshore_install, self.rate_onshore, 1)  # 출처: IRENA (엑셀참고)
+        self.lambda_OPEX_onshore_y = self.cal_trend(options, 'linear', self.p_onshore_install * 0.02, self.rate_onshore, 1)  # CAPEX의 3% 가정
 
         self.lambda_PPA_pv_y = self.cal_trend(options=options,
                                               trend_type='linear',
@@ -527,12 +523,11 @@ class ParameterPulpFrom:
         return set_dict
 
     # 공휴일 또는 주말 요금 반영 안함
-    def cal_tariff_table(self, options, IFN, tariff_y, tariff_average):
+    def cal_tariff_table(self, options, tariff_y, tariff_average, tariff_table):
         set_y = self.set_y
         set_d = self.set_d
         set_h = self.set_h
 
-        bill_table = IFN.tariff_table
         if options.complementary_tariff_table_origin_flag:
             table = pd.DataFrame(np.zeros((365, 24)), columns=np.arange(0, 24, 1))
 
@@ -542,22 +537,19 @@ class ParameterPulpFrom:
             others = np.arange(59, 150 + 1, 1)
             others = np.append(others, np.arange(243, 303 + 1, 1))
             ##
-            table.iloc[summer, [23, 0, 1, 2, 3, 4, 5, 6, 7, 8]] = bill_table[bill_table['시간대'] == '경부하']['여름철'].iloc[0]
-            table.iloc[summer, [9, 12, 17, 18, 19, 20, 21, 22]] = bill_table[bill_table['시간대'] == '중간부하']['여름철'].iloc[0]
-            table.iloc[summer, [10, 11, 13, 14, 15, 16]] = bill_table[bill_table['시간대'] == '최대부하']['여름철'].iloc[0]
-
-            table.iloc[winter, [23, 0, 1, 2, 3, 4, 5, 6, 7, 8]] = bill_table[bill_table['시간대'] == '경부하']['겨울철'].iloc[0]
-            table.iloc[winter, [9, 12, 13, 14, 15, 16, 20, 21]] = bill_table[bill_table['시간대'] == '중간부하']['겨울철'].iloc[0]
-            table.iloc[winter, [10, 11, 17, 18, 19, 22]] = bill_table[bill_table['시간대'] == '최대부하']['겨울철'].iloc[0]
-
-            table.iloc[others, [23, 0, 1, 2, 3, 4, 5, 6, 7, 8]] = bill_table[bill_table['시간대'] == '경부하']['봄가을철'].iloc[0]
-            table.iloc[others, [9, 12, 17, 18, 19, 20, 21, 22]] = bill_table[bill_table['시간대'] == '중간부하']['봄가을철'].iloc[
-                0]
-            table.iloc[others, [10, 11, 13, 14, 15, 16]] = bill_table[bill_table['시간대'] == '최대부하']['봄가을철'].iloc[0]
+            table.loc[summer, [23, 24, 1, 2, 3, 4, 5, 6, 7, 8]] = tariff_table.loc['경부하', '여름철']
+            table.loc[summer, [9, 10, 11, 13, 19, 20, 21, 22]] = tariff_table.loc['중간부하', '여름철']
+            table.loc[summer, [12, 14, 15, 16, 17, 18]] = tariff_table.loc['최대부하', '여름철']
+            table.loc[winter, [23, 24, 1, 2, 3, 4, 5, 6, 7, 8]] = tariff_table.loc['경부하', '겨울철']
+            table.loc[winter, [9, 13, 14, 15, 16, 20, 21, 22]] = tariff_table.loc['중간부하', '겨울철']
+            table.loc[winter, [10, 11, 12, 17, 18, 19]] = tariff_table.loc['최대부하', '겨울철']
+            table.loc[others, [23, 24, 1, 2, 3, 4, 5, 6, 7, 8]] = tariff_table.loc['경부하', '봄가을철']
+            table.loc[others, [9, 10, 11, 13, 19, 20, 21, 22]] = tariff_table.loc['중간부하', '봄가을철']
+            table.loc[others, [12, 14, 15, 16, 17, 18]] = tariff_table.loc['최대부하', '봄가을철']
 
         # 모든시간대에 대한 평균요금제 적용
         else:
-            table = pd.DataFrame(np.ones((365, 24)) * bill_table.loc[:, '여름철':'겨울철'].values.mean(),
+            table = pd.DataFrame(np.ones((365, 24)) * tariff_table.loc[:, '여름철':'겨울철'].values.mean(),
                                  columns=np.arange(0, 24, 1))
 
         axis_new = 0

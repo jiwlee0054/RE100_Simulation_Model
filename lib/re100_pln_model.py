@@ -61,7 +61,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     cap_max_ppa_onshore_y = input_parameters_pulp.cap_max_ppa_onshore_y
 
     # 보완공급 관련 가격
-    lambda_tariff_y_d_h = input_parameters_pulp.lambda_tariff_y_d_h
+    lambda_tariff_ppa_y_d_h = input_parameters_pulp.lambda_tariff_ppa_y_d_h
     lambda_climate_y = input_parameters_pulp.lambda_climate_y
     lambda_fuel_adjustment_y = input_parameters_pulp.lambda_fuel_adjustment_y
 
@@ -169,7 +169,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         # 보완공급
         if sum(demand_y_d_h[y, d, h] for d, h in set_d_h) > 0:
             model += c_tariff_y[y] == lp.lpSum(p_tariff_y_d_h[y, d, h] *
-                                               (lambda_tariff_y_d_h[y, d, h] +
+                                               (lambda_tariff_ppa_y_d_h[y, d, h] +
                                                 lambda_climate_y[y] +
                                                 lambda_fuel_adjustment_y[y]) for d, h in set_d_h) + \
                      lambda_tariff_fixed_won_per_kW * load_cap * 12
@@ -285,7 +285,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
 
     result['npv'] = model.objective.value()
 
-    lambda_tariff_y_d_h_dict = dict()
+    lambda_tariff_ppa_y_d_h_dict = dict()
 
     capacity_pv_y_dict = dict()
     capacity_onshore_y_dict = dict()
@@ -331,7 +331,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         p_ppa_pv_y_d_h_dict[y] = dict()
         p_ppa_onshore_y_d_h_dict[y] = dict()
 
-        lambda_tariff_y_d_h_dict[y] = dict()
+        lambda_tariff_ppa_y_d_h_dict[y] = dict()
 
         for d in set_d:
             p_sg_pv_y_d_h_dict[y][d] = dict()
@@ -340,7 +340,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
             p_ppa_pv_y_d_h_dict[y][d] = dict()
             p_ppa_onshore_y_d_h_dict[y][d] = dict()
 
-            lambda_tariff_y_d_h_dict[y][d] = dict()
+            lambda_tariff_ppa_y_d_h_dict[y][d] = dict()
 
             for h in set_h:
                 p_sg_pv_y_d_h_dict[y][d][h] = Apv_d_h[d, h] * capacity_pv_y[y].value()
@@ -349,7 +349,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
                 p_ppa_pv_y_d_h_dict[y][d][h] = p_ppa_pv_y_d_h[y, d, h].value()
                 p_ppa_onshore_y_d_h_dict[y][d][h] = p_ppa_onshore_y_d_h[y, d, h].value()
 
-                lambda_tariff_y_d_h_dict[y][d][h] = lambda_tariff_y_d_h[y, d, h]
+                lambda_tariff_ppa_y_d_h_dict[y][d][h] = lambda_tariff_ppa_y_d_h[y, d, h]
 
     result['p_sg_pv_y_d_h'] = p_sg_pv_y_d_h_dict
     result['p_sg_onshore_y_d_h'] = p_sg_onshore_y_d_h_dict
@@ -372,6 +372,6 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     result['c_commission_kepco_y'] = c_commission_kepco_y_dict
     result['c_commission_ppa_y'] = c_commission_ppa_y_dict
     result['c_ppa_network_basic_y'] = c_ppa_network_basic_y_dict
-    result['lambda_tariff_y_d_h'] = lambda_tariff_y_d_h_dict
+    result['lambda_tariff_ppa_y_d_h'] = lambda_tariff_ppa_y_d_h_dict
 
     return result
