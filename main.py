@@ -86,7 +86,8 @@ def solve_optimal_portfolio(options, IFN):
             result_dict_s[s]['p_eac_y'] = result['p_eac_y']
 
             result_dict_s[s]['c_sg_y'] = result['c_sg_y']
-            result_dict_s[s]['c_tariff_y'] = result['c_tariff_y']
+            result_dict_s[s]['c_tariff_used_y'] = result['c_tariff_used_y']
+            result_dict_s[s]['c_tariff_dema_y'] = result['c_tariff_dema_y']
             result_dict_s[s]['c_ppa_y'] = result['c_ppa_y']
             result_dict_s[s]['c_residual_y'] = result['c_residual_y']
             result_dict_s[s]['c_eac_y'] = result['c_eac_y']
@@ -259,29 +260,29 @@ def solve_optimal_portfolio(options, IFN):
                                                result_dict_s[s]['capacity_onshore_y'][f"{y}"] *
                                                result_dict_s[s]['lambda_OPEX_onshore_y'][f"{y}"])
 
-                    # 한전 기본요금
+                    # 보완공급 기본요금
                     if sum(input_parameters_pulp.demand_y_d_h[y, d, h] for d in input_parameters_pulp.set_d for h in
                            input_parameters_pulp.set_h) > 0:
                         y_data[
-                            y_tilda, 2] += input_parameters_pulp.lambda_tariff_fixed_won_per_kW * options.load_cap * 12
+                            y_tilda, 2] += result_dict_s[s]['c_tariff_dema_y'][y]
                     else:
                         pass
-                    # 한전 전력량요금
+                    # 보완공급 전력량요금
                     y_data[y_tilda, 3] += sum(result_dict_s[s]['p_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"] *
                                               result_dict_s[s]['lambda_tariff_ppa_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
                                               for h in input_parameters_pulp.set_h)
-                    # 한전 기후환경요금
+                    # 보완공급 기후환경요금
                     y_data[y_tilda, 4] += sum(result_dict_s[s]['p_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
                                               for h in input_parameters_pulp.set_h) * \
                                           result_dict_s[s]['lambda_climate_y'][f"{y}"]
-                    # 한전 연료비조정액
+                    # 보완공급 연료비조정액
                     y_data[y_tilda, 5] += sum(result_dict_s[s]['p_tariff_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                               for d in input_parameters_pulp.set_d
                                               for h in input_parameters_pulp.set_h) * \
                                           result_dict_s[s]['lambda_fuel_adjustment_y'][f"{y}"]
-                    # 한전 부가가치세
+                    # 보완공급 부가가치세
                     y_data[y_tilda, 6] += result_dict_s[s]['c_commission_kepco_y'][f"{y}"]
 
                     # 전력산업기반기금 (한전)
@@ -433,7 +434,8 @@ def solve_optimal_portfolio(options, IFN):
                     else:
 
                         y_data[y_tilda] += (result_dict_s[s]['c_sg_y'][f"{y}"] +
-                                            result_dict_s[s]['c_tariff_y'][f"{y}"] +
+                                            result_dict_s[s]['c_tariff_used_y'][f"{y}"] +
+                                            result_dict_s[s]['c_tariff_dema_y'][f"{y}"] +
                                             result_dict_s[s]['c_ppa_y'][f"{y}"] +
                                             result_dict_s[s]['c_ppa_network_basic_y'][f"{y}"] +
                                             result_dict_s[s]['c_eac_y'][f"{y}"] +
@@ -462,7 +464,8 @@ def solve_optimal_portfolio(options, IFN):
                 for y in input_parameters_pulp.set_y:
                     y_tilda = y - year0
                     y_data[y_tilda] += result_dict_s[s]['c_sg_y'][f"{y}"] + \
-                                       result_dict_s[s]['c_tariff_y'][f"{y}"] + \
+                                       result_dict_s[s]['c_tariff_used_y'][f"{y}"] + \
+                                       result_dict_s[s]['c_tariff_dema_y'][f"{y}"] + \
                                        result_dict_s[s]['c_ppa_y'][f"{y}"] + \
                                        result_dict_s[s]['c_ppa_network_basic_y'][f"{y}"] + \
                                        result_dict_s[s]['c_eac_y'][f"{y}"] + \

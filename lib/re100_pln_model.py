@@ -93,13 +93,15 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     p_tariff_y_d_h = lp.LpVariable.dicts("p_tariff_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
     p_ppa_pv_y_d_h = lp.LpVariable.dicts("p_ppa_pv_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
     p_ppa_onshore_y_d_h = lp.LpVariable.dicts("p_ppa_onshore_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
+    capacity_ppa_dummy_y = lp.LpVariable.dicts("capacity_ppa_dummy_y", set_y, lowBound=0, cat='Continuous')
 
     p_eac_y = lp.LpVariable.dicts("p_eac_y", set_y, lowBound=0, cat='Continuous')
     capacity_pv_y = lp.LpVariable.dicts("capacity_pv_y", set_y, lowBound=0, cat='Continuous')
     capacity_onshore_y = lp.LpVariable.dicts("capacity_onshore_y", set_y, lowBound=0, cat='Continuous')
 
     c_sg_y = lp.LpVariable.dicts("c_sg_y", set_y, lowBound=0, cat='Continuous')
-    c_tariff_y = lp.LpVariable.dicts("c_tariff_y", set_y, lowBound=0, cat='Continuous')
+    c_tariff_used_y = lp.LpVariable.dicts("c_tariff_used_y", set_y, lowBound=0, cat='Continuous')
+    c_tariff_dema_y = lp.LpVariable.dicts("c_tariff_dema_y", set_y, lowBound=0, cat='Continuous')
     c_ppa_y = lp.LpVariable.dicts("c_ppa_y", set_y, lowBound=0, cat='Continuous')
     c_eac_y = lp.LpVariable.dicts("c_eac_y", set_y, lowBound=0, cat='Continuous')
     c_residual_y = lp.LpVariable.dicts("c_residual_y", set_y, lowBound=0, cat='Continuous')
@@ -108,7 +110,6 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     c_funding_ppa_y = lp.LpVariable.dicts("c_funding_ppa_y", set_y, lowBound=0, cat='Continuous')
     c_commission_kepco_y = lp.LpVariable.dicts("c_commission_kepco_y", set_y, lowBound=0, cat='Continuous')
     c_commission_ppa_y = lp.LpVariable.dicts("c_commission_ppa_y", set_y, lowBound=0, cat='Continuous')
-    # c_commission_y = lp.LpVariable.dicts("c_commission_y", set_y, lowBound=0, cat='Continuous')
     c_ppa_network_basic_y = lp.LpVariable.dicts("c_ppa_network_basic_y", set_y, lowBound=0, cat='Continuous')
 
     u_y = lp.LpVariable.dicts("u_y", set_y, lowBound=0, cat='Binary')   # PPA 선택유무
@@ -116,7 +117,7 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     model = lp.LpProblem("RE100_Problem", lp.LpMinimize)
 
     # objective function
-    model += lp.lpSum((c_sg_y[y] + c_tariff_y[y] + c_ppa_y[y] + c_ppa_network_basic_y[y] + c_eac_y[y] +
+    model += lp.lpSum((c_sg_y[y] + c_tariff_used_y[y] + c_tariff_dema_y[y] + c_ppa_y[y] + c_ppa_network_basic_y[y] + c_eac_y[y] +
                        c_loss_payment_y[y] + c_funding_tariff_y[y] + c_funding_ppa_y[y] + c_commission_kepco_y[y] + c_commission_ppa_y[y] - c_residual_y[y] + lambda_ee_y[y]) /
                       (1 + discount_rate) ** (y - options.present_year) for y in set_y)
 
@@ -166,15 +167,14 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         # 기업PPA 망 기본요금
         model += c_ppa_network_basic_y[y] == (lambda_nt_d_y[y] * load_cap * 12) * u_y[y]  # 일단, 발전사업자 최대이용전력과 요금적용전력은 수요자와 같다고 가정.
 
-        # 보완공급
-        if sum(demand_y_d_h[y, d, h] for d, h in set_d_h) > 0:
-            model += c_tariff_y[y] == lp.lpSum(p_tariff_y_d_h[y, d, h] *
-                                               (lambda_tariff_ppa_y_d_h[y, d, h] +
-                                                lambda_climate_y[y] +
-                                                lambda_fuel_adjustment_y[y]) for d, h in set_d_h) + \
-                     lambda_tariff_fixed_won_per_kW * load_cap * 12
-        else:
-            pass
+        # 보완공급 (used 비용)
+        model += c_tariff_used_y[y] == lp.lpSum(p_tariff_y_d_h[y, d, h] *
+                                                (lambda_tariff_ppa_y_d_h[y, d, h] +
+                                                 lambda_climate_y[y] +
+                                                 lambda_fuel_adjustment_y[y]) for d, h in set_d_h)
+
+        # 보완공급 (dema 비용)
+        model += c_tariff_dema_y[y] == lambda_tariff_fixed_won_per_kW * capacity_ppa_dummy_y[y] * 12
 
         # 인증서 비용
         model += c_eac_y[y] == p_eac_y[y] * lambda_eac_y[y]
@@ -183,13 +183,13 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         model += c_loss_payment_y[y] == lambda_loss_payment_y[y] * lp.lpSum(p_ppa_pv_y_d_h[y, d, h] + p_ppa_onshore_y_d_h[y, d, h] for d, h in set_d_h)      # 기업ppa에 할당되는 요금 (한전 평균 전기요금 단가로 계산됨)
 
         # 전력산업기반기금 (tariff)
-        model += c_funding_tariff_y[y] == c_tariff_y[y] * ratio_tariff_funding_y[y]
+        model += c_funding_tariff_y[y] == c_tariff_used_y[y] * ratio_tariff_funding_y[y]
         
         # 전력산업기반기금 (PPA)
         model += c_funding_ppa_y[y] == (c_ppa_y[y] + c_loss_payment_y[y]) * ratio_ppa_funding_y[y]
 
         # 부가가치세
-        model += c_commission_kepco_y[y] == c_tariff_y[y] * ratio_commission_tariff_ratio_per_won_y[y]
+        model += c_commission_kepco_y[y] == c_tariff_used_y[y] * ratio_commission_tariff_ratio_per_won_y[y]
         model += c_commission_ppa_y[y] == c_ppa_y[y] * ratio_commission_ppa_ratio_per_won_y[y]
 
     for y in set_y:
@@ -218,6 +218,8 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
 
     # PPA 조달 제약
     for y, d, h in set_y_d_h:
+        model += capacity_ppa_dummy_y[y] >= p_ppa_pv_y_d_h[y, d, h] + p_ppa_onshore_y_d_h[y, d, h] - max([v for k, v in demand_y_d_h.items() if k[0] == y])
+
         if demand_y_d_h[y, d, h] - ee_y_d_h[y, d, h] > Apv_d_h[d, h] * cap_max_ppa_pv_y[y]:
             model += p_ppa_pv_y_d_h[y, d, h] <= (Apv_d_h[d, h] * cap_max_ppa_pv_y[y]) * u_y[y]
         else:
@@ -291,7 +293,8 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     capacity_onshore_y_dict = dict()
 
     c_sg_y_dict = dict()
-    c_tariff_y_dict = dict()
+    c_tariff_used_y_dict = dict()
+    c_tariff_dema_y_dict = dict()
     c_ppa_y_dict = dict()
     c_eac_y_dict = dict()
     c_loss_payment_y_dict = dict()
@@ -314,7 +317,8 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         capacity_pv_y_dict[y] = capacity_pv_y[y].value()
         capacity_onshore_y_dict[y] = capacity_onshore_y[y].value()
         c_sg_y_dict[y] = c_sg_y[y].value()
-        c_tariff_y_dict[y] = c_tariff_y[y].value()
+        c_tariff_used_y_dict[y] = c_tariff_used_y[y].value()
+        c_tariff_dema_y_dict[y] = c_tariff_dema_y[y].value()
         c_ppa_y_dict[y] = c_ppa_y[y].value()
         c_eac_y_dict[y] = c_eac_y[y].value()
         c_residual_y_dict[y] = c_residual_y[y].value()
@@ -361,7 +365,8 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     result['capacity_onshore_y'] = capacity_onshore_y_dict
 
     result['c_sg_y'] = c_sg_y_dict
-    result['c_tariff_y'] = c_tariff_y_dict
+    result['c_tariff_used_y'] = c_tariff_used_y_dict
+    result['c_tariff_dema_y'] = c_tariff_dema_y_dict
     result['c_ppa_y'] = c_ppa_y_dict
     result['c_eac_y'] = c_eac_y_dict
     result['c_residual_y'] = c_residual_y_dict
