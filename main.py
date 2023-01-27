@@ -1,3 +1,5 @@
+import copy
+
 import lib.parameters as para
 import lib.re100_pln_model as re_pln
 import lib.PLOT
@@ -11,6 +13,96 @@ import pandas as pd
 import math
 
 
+def run_simulation(options, IFN):
+    y_resolution = 1
+    y_overlap = 0
+    count = 0
+    input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
+    result_dict = dict()
+
+    result_dict['lambda_CAPEX_PV_y'] = input_parameters_pulp.lambda_CAPEX_PV_y
+    result_dict['lambda_OPEX_PV_y'] = input_parameters_pulp.lambda_OPEX_PV_y
+    result_dict['lambda_CAPEX_onshore_y'] = input_parameters_pulp.lambda_CAPEX_onshore_y
+    result_dict['lambda_OPEX_onshore_y'] = input_parameters_pulp.lambda_OPEX_onshore_y
+    result_dict['lambda_eac_y'] = input_parameters_pulp.lambda_eac_y
+    result_dict['lambda_PPA_pv_y'] = input_parameters_pulp.lambda_PPA_pv_y
+    result_dict['lambda_PPA_onshore_y'] = input_parameters_pulp.lambda_PPA_onshore_y
+    result_dict['lambda_AS_payment_y'] = input_parameters_pulp.lambda_AS_payment_y
+    result_dict['lambda_climate_y'] = input_parameters_pulp.lambda_climate_y
+    result_dict['lambda_nt_c_y'] = input_parameters_pulp.lambda_nt_c_y
+    result_dict['lambda_fuel_adjustment_y'] = input_parameters_pulp.lambda_fuel_adjustment_y
+    result_dict['lambda_loss_payment_y'] = input_parameters_pulp.lambda_loss_payment_y
+    result_dict['lambda_welfare_y'] = input_parameters_pulp.lambda_welfare_y
+    result_dict['rate_pv'] = input_parameters_pulp.rate_pv
+    result_dict['rate_onshore'] = input_parameters_pulp.rate_onshore
+    result_dict['tariff_y'] = input_parameters_pulp.tariff_y
+    result_dict['lambda_tariff_pre_y_d_h'] = input_parameters_pulp.lambda_tariff_pre_y_d_h
+    result_dict['lambda_tariff_pro_y_d_h'] = input_parameters_pulp.lambda_tariff_pro_y_d_h
+
+    result_dict['u_y'] = dict()
+    result_dict['p_sg_pv_y_d_h'] = dict()
+    result_dict['p_sg_onshore_y_d_h'] = dict()
+    result_dict['p_tariff_y_d_h'] = dict()
+    result_dict['p_ppa_pv_y_d_h'] = dict()
+    result_dict['p_ppa_onshore_y_d_h'] = dict()
+    result_dict['capacity_cs_contract_y'] = dict()
+    result_dict['p_eac_y'] = dict()
+    result_dict['capacity_pv_y'] = dict()
+    result_dict['capacity_onshore_y'] = dict()
+    result_dict['c_sg_y'] = dict()
+    result_dict['c_tariff_used_y'] = dict()
+    result_dict['c_tariff_dema_y'] = dict()
+    result_dict['c_ppa_y'] = dict()
+    result_dict['c_eac_y'] = dict()
+    result_dict['c_residual_y'] = dict()
+    result_dict['c_loss_payment_y'] = dict()
+    result_dict['c_funding_tariff_y'] = dict()
+    result_dict['c_funding_ppa_y'] = dict()
+    result_dict['c_commission_kepco_y'] = dict()
+    result_dict['c_commission_ppa_y'] = dict()
+
+    while True:
+        if count == 0:
+            options.model_start_y = options.year0
+            options.model_end_y = options.model_start_y + y_resolution - 1
+            print(f"model time: {options.model_start_y} ~ {options.model_end_y}", end=' ')
+            result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name, result_dict=None)
+        else:
+            options.model_start_y = options.model_end_y - y_overlap + 1
+            options.model_end_y = options.model_end_y + y_resolution
+            print(f"model time: {options.model_start_y} ~ {options.model_end_y}", end=' ')
+
+            result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name, result_dict=result_dict)
+
+        for y in range(options.model_start_y, options.model_end_y + 1, 1):
+            result_dict['u_y'].update(result['u_y'])
+            result_dict['p_sg_pv_y_d_h'].update(result['p_sg_pv_y_d_h'])
+            result_dict['p_sg_onshore_y_d_h'].update(result['p_sg_onshore_y_d_h'])
+            result_dict['p_tariff_y_d_h'].update(result['p_tariff_y_d_h'])
+            result_dict['p_ppa_pv_y_d_h'].update(result['p_ppa_pv_y_d_h'])
+            result_dict['p_ppa_onshore_y_d_h'].update(result['p_ppa_onshore_y_d_h'])
+            result_dict['capacity_cs_contract_y'].update(result['capacity_cs_contract_y'])
+            result_dict['p_eac_y'].update(result['p_eac_y'])
+            result_dict['capacity_pv_y'].update(result['capacity_pv_y'])
+            result_dict['capacity_onshore_y'].update(result['capacity_onshore_y'])
+            result_dict['c_sg_y'].update(result['c_sg_y'])
+            result_dict['c_tariff_used_y'].update(result['c_tariff_used_y'])
+            result_dict['c_tariff_dema_y'].update(result['c_tariff_dema_y'])
+            result_dict['c_ppa_y'].update(result['c_ppa_y'])
+            result_dict['c_eac_y'].update(result['c_eac_y'])
+            result_dict['c_residual_y'].update(result['c_residual_y'])
+            result_dict['c_loss_payment_y'].update(result['c_loss_payment_y'])
+            result_dict['c_funding_tariff_y'].update(result['c_funding_tariff_y'])
+            result_dict['c_funding_ppa_y'].update(result['c_funding_ppa_y'])
+            result_dict['c_commission_kepco_y'].update(result['c_commission_kepco_y'])
+            result_dict['c_commission_ppa_y'].update(result['c_commission_ppa_y'])
+
+        count += 1
+        if options.model_end_y == options.year1:
+            break
+
+
+
 def solve_optimal_portfolio(options, IFN):
     if options.run_simulation_flag:
         input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
@@ -21,7 +113,6 @@ def solve_optimal_portfolio(options, IFN):
                       f'sg_ratio_{options.customize_self_generation_ratio}/{options.scenario_num}.json',
                       'w') as outfile:
                 json.dump(result, outfile, indent=4)
-
         return result
 
     if options.run_simulation_by_case_flag:
