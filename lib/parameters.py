@@ -20,7 +20,7 @@ class ProbOptions:
         self.customize_achievement_flag = False  # True: RE100 달성 비중을 무조건적으로 맞추기, False: 자유롭게 맞추기(단, 최소값은 유지)
         self.customize_self_generation_flag = True  # True: 자가발전 용량을 전력소비량의 0% 기준, 1% 기준으로 설치, False: 자유롭게 자가발전 용량 결정
 
-        self.customize_exemption_flag = True  # True: 망이용, 부가정산, 송배전손실 등 PPA로 인한 부가비용 면제, False: 부가비용 고려
+        self.customize_exemption_flag = False  # True: 망이용, 부가정산, 송배전손실 등 PPA로 인한 부가비용 면제, False: 부가비용 고려
         self.customize_setup_NetworkTariff = True  # True: 망요금을 강제로 설정, False: 송배전이용요금을 준수하여 결정
 
         self.result_analysis_flag = False
@@ -332,7 +332,7 @@ class ParameterPulpFrom:
         self.tariff_y = self.cal_trend(options, 'linear', self.tariff_average, self.rate_tariff, 1)
 
         tariff_pre_arr = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_pre_dict)
-        tariff_pro_arr = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_pre_dict)
+        tariff_pro_arr = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_pro_dict)
         self.lambda_tariff_pre_y_d_h = self.arr_to_dict(options, tariff_pre_arr)
         self.lambda_tariff_pro_y_d_h = self.arr_to_dict(options, tariff_pro_arr)
         self.lambda_tariff_dema_pre_y = IFN.tariff_pre_dema_dict

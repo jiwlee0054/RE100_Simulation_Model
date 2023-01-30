@@ -13,9 +13,10 @@ import pandas as pd
 import math
 
 
-def run_simulation(options, IFN):
-    y_resolution = 1
+def run_portfolio(options, IFN):
+    y_resolution = 2
     y_overlap = 0
+
     count = 0
     input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
     result_dict = dict()
@@ -38,6 +39,8 @@ def run_simulation(options, IFN):
     result_dict['tariff_y'] = input_parameters_pulp.tariff_y
     result_dict['lambda_tariff_pre_y_d_h'] = input_parameters_pulp.lambda_tariff_pre_y_d_h
     result_dict['lambda_tariff_pro_y_d_h'] = input_parameters_pulp.lambda_tariff_pro_y_d_h
+    result_dict['lambda_tariff_dema_pre_y'] = input_parameters_pulp.lambda_tariff_dema_pre_y
+    result_dict['lambda_tariff_dema_pro_y'] = input_parameters_pulp.lambda_tariff_dema_pro_y
 
     result_dict['u_y'] = dict()
     result_dict['p_sg_pv_y_d_h'] = dict()
@@ -51,7 +54,9 @@ def run_simulation(options, IFN):
     result_dict['capacity_onshore_y'] = dict()
     result_dict['c_sg_y'] = dict()
     result_dict['c_tariff_used_y'] = dict()
-    result_dict['c_tariff_dema_y'] = dict()
+    result_dict['c_tariff_pre_dema_y'] = dict()
+    result_dict['c_tariff_pro_dema_y'] = dict()
+
     result_dict['c_ppa_y'] = dict()
     result_dict['c_eac_y'] = dict()
     result_dict['c_residual_y'] = dict()
@@ -65,13 +70,17 @@ def run_simulation(options, IFN):
         if count == 0:
             options.model_start_y = options.year0
             options.model_end_y = options.model_start_y + y_resolution - 1
-            print(f"model time: {options.model_start_y} ~ {options.model_end_y}", end=' ')
-            result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name, result_dict=None)
         else:
             options.model_start_y = options.model_end_y - y_overlap + 1
             options.model_end_y = options.model_end_y + y_resolution
-            print(f"model time: {options.model_start_y} ~ {options.model_end_y}", end=' ')
 
+        if options.model_end_y > options.year1:
+            options.model_end_y = options.year1
+
+        print(f"model time: {options.model_start_y} ~ {options.model_end_y}", end=' ')
+        if count == 0:
+            result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name, result_dict=None)
+        else:
             result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name, result_dict=result_dict)
 
         for y in range(options.model_start_y, options.model_end_y + 1, 1):
@@ -87,7 +96,9 @@ def run_simulation(options, IFN):
             result_dict['capacity_onshore_y'].update(result['capacity_onshore_y'])
             result_dict['c_sg_y'].update(result['c_sg_y'])
             result_dict['c_tariff_used_y'].update(result['c_tariff_used_y'])
-            result_dict['c_tariff_dema_y'].update(result['c_tariff_dema_y'])
+            result_dict['c_tariff_pre_dema_y'].update(result['c_tariff_pre_dema_y'])
+            result_dict['c_tariff_pro_dema_y'].update(result['c_tariff_pro_dema_y'])
+
             result_dict['c_ppa_y'].update(result['c_ppa_y'])
             result_dict['c_eac_y'].update(result['c_eac_y'])
             result_dict['c_residual_y'].update(result['c_residual_y'])
@@ -101,32 +112,28 @@ def run_simulation(options, IFN):
         if options.model_end_y == options.year1:
             break
 
+    return result_dict
 
 
-def solve_optimal_portfolio(options, IFN):
+def run_simulation(options, IFN):
     if options.run_simulation_flag:
-        input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
-        result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name)
-
+        result = run_portfolio(options, IFN)
         if options.parallel_processing_flag:
-            with open(f'{options.loc_pp_result}/RE_flag_{options.customize_achievement_flag}, '
-                      f'sg_ratio_{options.customize_self_generation_ratio}/{options.scenario_num}.json',
-                      'w') as outfile:
+            with open(f'{options.loc_pp_result}/{options.scenario_num}.json', 'w') as outfile:
                 json.dump(result, outfile, indent=4)
         return result
 
     if options.run_simulation_by_case_flag:
         customize_exemption_list = [True, False]
-        input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
-
         for flag in customize_exemption_list:
             options.customize_exemption_flag = flag
             options.set_result_loc(opt='부가비용')
-            result = re_pln.solve_re100_milp(options, input_parameters_pulp, solver_name)
-
+            result = run_portfolio(options, IFN)
             with open(f'{options.loc_pp_result}/{options.scenario_num}.json', 'w') as outfile:
                 json.dump(result, outfile, indent=4)
 
+
+def solve_optimal_portfolio(options, IFN):
     if options.result_analysis_flag:
         input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
         if options.customize_exemption_flag:
@@ -849,6 +856,6 @@ if __name__ == '__main__':
     solver_name = 'cplex'
     IFN = para.ReadInputData(options)
 
-    # result = solve_optimal_portfolio(options, IFN)
+    result = run_simulation(options, IFN)
 
     print(f"run time : {time.time() - start}")
