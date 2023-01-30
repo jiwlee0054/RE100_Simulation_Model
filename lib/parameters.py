@@ -20,7 +20,7 @@ class ProbOptions:
         self.customize_achievement_flag = False  # True: RE100 달성 비중을 무조건적으로 맞추기, False: 자유롭게 맞추기(단, 최소값은 유지)
         self.customize_self_generation_flag = True  # True: 자가발전 용량을 전력소비량의 0% 기준, 1% 기준으로 설치, False: 자유롭게 자가발전 용량 결정
 
-        self.customize_exemption_flag = False  # True: 망이용, 부가정산, 송배전손실 등 PPA로 인한 부가비용 면제, False: 부가비용 고려
+        self.customize_exemption_flag = True  # True: 망이용, 부가정산, 송배전손실 등 PPA로 인한 부가비용 면제, False: 부가비용 고려
         self.customize_setup_NetworkTariff = True  # True: 망요금을 강제로 설정, False: 송배전이용요금을 준수하여 결정
 
         self.result_analysis_flag = False
@@ -65,12 +65,16 @@ class ProbOptions:
 
         self.customize_self_generation_ratio = 1  # %
 
-        self.loc_result = f"D:/RE100_NEXTgroup/result"
-        self.date_result = "230126"
+        # self.loc_result = f"D:/RE100_NEXTgroup/result"
+        self.loc_result = f"C:/Users/NEXTGroup/Dropbox/모델 개발/RE100_Simulation_Model"
+
+        self.date_result = "230130"
 
         self.set_result_loc(opt='부가비용')
-        self.loc_plot = f"D:/RE100_NEXTgroup/plot"
-        self.loc_excel = f"D:/RE100_NEXTgroup/excel"
+        self.loc_plot = f"C:/Users/NEXTGroup/Desktop/plot"
+        self.loc_excel = f"C:/Users/NEXTGroup/Desktop/excel"
+        # self.loc_plot = f"D:/RE100_NEXTgroup/plot"
+        # self.loc_excel = f"D:/RE100_NEXTgroup/excel"
 
         self.gaprel = 0.001
         self.contract_voltage = 154
@@ -333,7 +337,7 @@ class ParameterPulpFrom:
         tariff_pre_arr = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_pre_dict)
         tariff_pro_arr = self.cal_tariff_table(options, self.tariff_y, self.tariff_average, IFN.tariff_pro_dict)
         self.lambda_tariff_pre_y_d_h = self.arr_to_dict(options, tariff_pre_arr)
-        self.lambda_tariff_pro_y_d_h = self.arr_to_dict(options, tariff_pro_arr)
+        self.lambda_tariff_pro_y_d_h = self.arr_to_dict(options, tariff_pre_arr)
         self.lambda_tariff_dema_pre_y = IFN.tariff_pre_dema_dict
         self.lambda_tariff_dema_pro_y = IFN.tariff_pro_dema_dict
 
