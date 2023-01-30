@@ -21,26 +21,7 @@ def run_portfolio(options, IFN):
     input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
     result_dict = dict()
 
-    result_dict['lambda_CAPEX_PV_y'] = input_parameters_pulp.lambda_CAPEX_PV_y
-    result_dict['lambda_OPEX_PV_y'] = input_parameters_pulp.lambda_OPEX_PV_y
-    result_dict['lambda_CAPEX_onshore_y'] = input_parameters_pulp.lambda_CAPEX_onshore_y
-    result_dict['lambda_OPEX_onshore_y'] = input_parameters_pulp.lambda_OPEX_onshore_y
-    result_dict['lambda_eac_y'] = input_parameters_pulp.lambda_eac_y
-    result_dict['lambda_PPA_pv_y'] = input_parameters_pulp.lambda_PPA_pv_y
-    result_dict['lambda_PPA_onshore_y'] = input_parameters_pulp.lambda_PPA_onshore_y
-    result_dict['lambda_AS_payment_y'] = input_parameters_pulp.lambda_AS_payment_y
-    result_dict['lambda_climate_y'] = input_parameters_pulp.lambda_climate_y
-    result_dict['lambda_nt_c_y'] = input_parameters_pulp.lambda_nt_c_y
-    result_dict['lambda_fuel_adjustment_y'] = input_parameters_pulp.lambda_fuel_adjustment_y
-    result_dict['lambda_loss_payment_y'] = input_parameters_pulp.lambda_loss_payment_y
-    result_dict['lambda_welfare_y'] = input_parameters_pulp.lambda_welfare_y
-    result_dict['rate_pv'] = input_parameters_pulp.rate_pv
-    result_dict['rate_onshore'] = input_parameters_pulp.rate_onshore
-    result_dict['tariff_y'] = input_parameters_pulp.tariff_y
-    result_dict['lambda_tariff_pre_y_d_h'] = input_parameters_pulp.lambda_tariff_pre_y_d_h
-    result_dict['lambda_tariff_pro_y_d_h'] = input_parameters_pulp.lambda_tariff_pro_y_d_h
-    result_dict['lambda_tariff_dema_pre_y'] = input_parameters_pulp.lambda_tariff_dema_pre_y
-    result_dict['lambda_tariff_dema_pro_y'] = input_parameters_pulp.lambda_tariff_dema_pro_y
+
 
     result_dict['u_y'] = dict()
     result_dict['p_sg_pv_y_d_h'] = dict()
@@ -56,7 +37,6 @@ def run_portfolio(options, IFN):
     result_dict['c_tariff_used_y'] = dict()
     result_dict['c_tariff_pre_dema_y'] = dict()
     result_dict['c_tariff_pro_dema_y'] = dict()
-
     result_dict['c_ppa_y'] = dict()
     result_dict['c_eac_y'] = dict()
     result_dict['c_residual_y'] = dict()
@@ -111,6 +91,41 @@ def run_portfolio(options, IFN):
         count += 1
         if options.model_end_y == options.year1:
             break
+
+    result_dict['lambda_CAPEX_PV_y'] = input_parameters_pulp.lambda_CAPEX_PV_y
+    result_dict['lambda_OPEX_PV_y'] = input_parameters_pulp.lambda_OPEX_PV_y
+    result_dict['lambda_CAPEX_onshore_y'] = input_parameters_pulp.lambda_CAPEX_onshore_y
+    result_dict['lambda_OPEX_onshore_y'] = input_parameters_pulp.lambda_OPEX_onshore_y
+    result_dict['lambda_eac_y'] = input_parameters_pulp.lambda_eac_y
+    result_dict['lambda_PPA_pv_y'] = input_parameters_pulp.lambda_PPA_pv_y
+    result_dict['lambda_PPA_onshore_y'] = input_parameters_pulp.lambda_PPA_onshore_y
+    result_dict['lambda_AS_payment_y'] = input_parameters_pulp.lambda_AS_payment_y
+    result_dict['lambda_climate_y'] = input_parameters_pulp.lambda_climate_y
+    result_dict['lambda_nt_c_y'] = input_parameters_pulp.lambda_nt_c_y
+    result_dict['lambda_fuel_adjustment_y'] = input_parameters_pulp.lambda_fuel_adjustment_y
+    result_dict['lambda_loss_payment_y'] = input_parameters_pulp.lambda_loss_payment_y
+    result_dict['lambda_welfare_y'] = input_parameters_pulp.lambda_welfare_y
+    result_dict['rate_pv'] = input_parameters_pulp.rate_pv
+    result_dict['rate_onshore'] = input_parameters_pulp.rate_onshore
+    result_dict['tariff_y'] = input_parameters_pulp.tariff_y
+
+    result_dict['lambda_tariff_pre_y_d_h'] = dict()
+    result_dict['lambda_tariff_pro_y_d_h'] = dict()
+    for y in range(options.year0, options.year1 + 1, 1):
+        result_dict['lambda_tariff_pre_y_d_h'][y] = dict()
+        result_dict['lambda_tariff_pro_y_d_h'][y] = dict()
+        for d in range(options.model_start_d, options.model_end_d + 1, 1):
+            result_dict['lambda_tariff_pre_y_d_h'][y][d] = dict()
+            result_dict['lambda_tariff_pro_y_d_h'][y][d] = dict()
+            for h in range(options.model_start_h, options.model_end_h + 1, 1):
+                result_dict['lambda_tariff_pre_y_d_h'][y][d][h] = input_parameters_pulp.lambda_tariff_pre_y_d_h[y, d, h]
+                result_dict['lambda_tariff_pro_y_d_h'][y][d][h] = input_parameters_pulp.lambda_tariff_pro_y_d_h[y, d, h]
+
+
+    # result_dict['lambda_tariff_pre_y_d_h'] = input_parameters_pulp.lambda_tariff_pre_y_d_h
+    # result_dict['lambda_tariff_pro_y_d_h'] = input_parameters_pulp.lambda_tariff_pro_y_d_h
+    # result_dict['lambda_tariff_dema_pre_y'] = input_parameters_pulp.lambda_tariff_dema_pre_y
+    # result_dict['lambda_tariff_dema_pro_y'] = input_parameters_pulp.lambda_tariff_dema_pro_y
 
     return result_dict
 

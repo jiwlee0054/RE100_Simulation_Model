@@ -340,9 +340,6 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
 
     u_y_dict = dict()
 
-    lambda_tariff_pre_y_d_h_dict = dict()
-    lambda_tariff_pro_y_d_h_dict = dict()
-
     p_sg_pv_y_d_h_dict = dict()
     p_sg_onshore_y_d_h_dict = dict()
 
@@ -395,9 +392,6 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         p_ppa_pv_y_d_h_dict[y] = dict()
         p_ppa_onshore_y_d_h_dict[y] = dict()
 
-        lambda_tariff_pre_y_d_h_dict[y] = dict()
-        lambda_tariff_pro_y_d_h_dict[y] = dict()
-
         for d in set_d:
             p_sg_pv_y_d_h_dict[y][d] = dict()
             p_sg_onshore_y_d_h_dict[y][d] = dict()
@@ -405,18 +399,12 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
             p_ppa_pv_y_d_h_dict[y][d] = dict()
             p_ppa_onshore_y_d_h_dict[y][d] = dict()
 
-            lambda_tariff_pre_y_d_h_dict[y][d] = dict()
-            lambda_tariff_pro_y_d_h_dict[y][d] = dict()
-
             for h in set_h:
                 p_sg_pv_y_d_h_dict[y][d][h] = Apv_d_h[d, h] * capacity_pv_y[y].value()
                 p_sg_onshore_y_d_h_dict[y][d][h] = Aonshore_d_h[d, h] * capacity_onshore_y[y].value()
                 p_tariff_y_d_h_dict[y][d][h] = p_tariff_y_d_h[y, d, h].value()
                 p_ppa_pv_y_d_h_dict[y][d][h] = p_ppa_pv_y_d_h[y, d, h].value()
                 p_ppa_onshore_y_d_h_dict[y][d][h] = p_ppa_onshore_y_d_h[y, d, h].value()
-
-                lambda_tariff_pre_y_d_h_dict[y][d][h] = lambda_tariff_pre_y_d_h[y, d, h]
-                lambda_tariff_pro_y_d_h_dict[y][d][h] = lambda_tariff_pro_y_d_h[y, d, h]
 
     result['u_y'] = u_y_dict
 
