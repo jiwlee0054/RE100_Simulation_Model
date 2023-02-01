@@ -470,10 +470,16 @@ def run_analysis(options, IFN):
                                                for h in options.set_h) * \
                                            result_dict_s[s]['lambda_welfare_y'][f"{y}"]
                     # 기업PPA 부가가치세
-                    y_data[y_tilda, 14] += result_dict_s[s]['c_commission_ppa_y'][f"{y}"]
+                    y_data[y_tilda, 14] += result_dict_s[s]['c_ppa_y'][f"{y}"] * \
+                                           input_parameters_pulp.ratio_commission_ppa_ratio_per_won_y[y]
 
                     # 전력산업기반기금 (PPA)
-                    y_data[y_tilda, 15] += result_dict_s[s]['c_funding_ppa_y'][f"{y}"]
+                    y_data[y_tilda, 15] += (sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
+                                               result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                                               for d in options.set_d
+                                               for h in options.set_h) * result_dict_s[s]['lambda_loss_payment_y'][f"{y}"] +
+                                            result_dict_s[s]['c_ppa_y'][f"{y}"]) * \
+                                           input_parameters_pulp.ratio_ppa_funding_y[y]
 
                     # REC 비용
                     y_data[y_tilda, 16] += result_dict_s[s]['c_eac_y'][f"{y}"]
