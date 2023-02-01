@@ -96,25 +96,25 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
     capacity_pv_y = lp.LpVariable.dicts("capacity_pv_y", set_y, lowBound=0, cat='Continuous')
     capacity_onshore_y = lp.LpVariable.dicts("capacity_onshore_y", set_y, lowBound=0, cat='Continuous')
 
-    c_sg_y = lp.LpVariable.dicts("c_sg_y", set_y, lowBound=0, cat='Continuous')
-    c_tariff_used_y = lp.LpVariable.dicts("c_tariff_used_y", set_y, lowBound=0, cat='Continuous')
+    c_sg_y = lp.LpVariable.dicts("c_sg_y", set_y, cat='Continuous')
+    c_tariff_used_y = lp.LpVariable.dicts("c_tariff_used_y", set_y, cat='Continuous')
     c_tariff_pre_used_y_d_h = lp.LpVariable.dicts("c_tariff_pre_used_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
     c_tariff_pro_used_y_d_h = lp.LpVariable.dicts("c_tariff_pro_used_y_d_h", set_y_d_h, lowBound=0, cat='Continuous')
 
-    c_tariff_dema_y = lp.LpVariable.dicts("c_tariff_dema_y", set_y, lowBound=0, cat='Continuous')
+    c_tariff_dema_y = lp.LpVariable.dicts("c_tariff_dema_y", set_y, cat='Continuous')
     c_tariff_pre_dema_y = lp.LpVariable.dicts("c_tariff_pre_dema_y", set_y, lowBound=0, cat='Continuous')
     c_tariff_pro_dema_y = lp.LpVariable.dicts("c_tariff_pro_dema_y", set_y, lowBound=0, cat='Continuous')
 
-    c_ppa_y = lp.LpVariable.dicts("c_ppa_y", set_y, lowBound=0, cat='Continuous')
-    c_eac_y = lp.LpVariable.dicts("c_eac_y", set_y, lowBound=0, cat='Continuous')
-    c_residual_y = lp.LpVariable.dicts("c_residual_y", set_y, lowBound=0, cat='Continuous')
-    c_loss_payment_y = lp.LpVariable.dicts("c_loss_payment_y", set_y, lowBound=0, cat='Continuous')
-    c_funding_tariff_y = lp.LpVariable.dicts("c_funding_tariff_y", set_y, lowBound=0, cat='Continuous')
-    c_funding_ppa_y = lp.LpVariable.dicts("c_funding_ppa_y", set_y, lowBound=0, cat='Continuous')
-    c_commission_kepco_y = lp.LpVariable.dicts("c_commission_kepco_y", set_y, lowBound=0, cat='Continuous')
-    c_commission_ppa_y = lp.LpVariable.dicts("c_commission_ppa_y", set_y, lowBound=0, cat='Continuous')
+    c_ppa_y = lp.LpVariable.dicts("c_ppa_y", set_y, cat='Continuous')
+    c_eac_y = lp.LpVariable.dicts("c_eac_y", set_y, cat='Continuous')
+    c_residual_y = lp.LpVariable.dicts("c_residual_y", set_y, cat='Continuous')
+    c_loss_payment_y = lp.LpVariable.dicts("c_loss_payment_y", set_y, cat='Continuous')
+    c_funding_tariff_y = lp.LpVariable.dicts("c_funding_tariff_y", set_y, cat='Continuous')
+    c_funding_ppa_y = lp.LpVariable.dicts("c_funding_ppa_y", set_y, cat='Continuous')
+    c_commission_kepco_y = lp.LpVariable.dicts("c_commission_kepco_y", set_y, cat='Continuous')
+    c_commission_ppa_y = lp.LpVariable.dicts("c_commission_ppa_y", set_y, cat='Continuous')
 
-    u_y = lp.LpVariable.dicts("u_y", set_y, lowBound=0, cat='Binary')   # 산업용전기 선택유무
+    u_y = lp.LpVariable.dicts("u_y", set_y, cat='Binary')   # 산업용전기 선택유무
 
     model = lp.LpProblem("RE100_Problem", lp.LpMinimize)
 
@@ -275,8 +275,10 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         # model += capacity_cs_contract_y[y] >= max([v for k, v in demand_y_d_h.items() if k[0] == y]) - (p_ppa_pv_y_d_h[y, d, h] + p_ppa_onshore_y_d_h[y, d, h])
 
     for y, d, h in set_y_d_h:
-        # 한전으로부터 수급\
-        model += p_tariff_y_d_h[y, d, h] <= demand_y_d_h[y, d, h] - ee_y_d_h[y, d, h]
+        # 한전으로부터 수급
+        model += p_tariff_y_d_h[y, d, h] <= \
+                 demand_y_d_h[y, d, h] - \
+                 ee_y_d_h[y, d, h]
 
         # 보완공급 (used 비용) Big-M method 활용
         model += c_tariff_pre_used_y_d_h[y, d, h] * (1 / (lambda_tariff_pre_y_d_h[y, d, h] +

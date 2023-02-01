@@ -14,7 +14,7 @@ import math
 
 
 def run_portfolio(options, IFN, flag_msg):
-    y_resolution = 2
+    y_resolution = 1
     y_overlap = 0
 
     count = 0
@@ -351,6 +351,7 @@ def run_analysis(options, IFN):
             x_data = np.arange(year0, year1 + 1, 1)
             y_data = np.zeros((year1 - year0 + 1, item_num))
             for s in result_dict_s.keys():
+                z_data = np.zeros((year1 - year0 + 1, item_num))
                 for y in options.set_y:
                     y_tilda = y - year0
                     if y == options.year0:
@@ -409,30 +410,37 @@ def run_analysis(options, IFN):
 
                     if y == options.year0:
                         # 태양광 기업PPA 재생에너지 사용요금
-                        y_data[y_tilda, 8] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                        P_pv = sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
                                                   for d in options.set_d
-                                                  for h in options.set_h) * \
-                                              result_dict_s[s]['lambda_PPA_pv_y'][f"{y}"]
+                                                  for h in options.set_h) * result_dict_s[s]['lambda_PPA_pv_y'][f"{y}"]
+                        P_wt = sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
+                                                  for d in options.set_d
+                                                  for h in options.set_h) *  result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"]
+
+                        y_data[y_tilda, 8] += P_pv
                         # 풍력 기업PPA 재생에너지 사용요금
-                        y_data[y_tilda, 9] += sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"]
-                                                  for d in options.set_d
-                                                  for h in options.set_h) * \
-                                              result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"]
+                        y_data[y_tilda, 9] += P_wt
+                        z_data[y_tilda, 8] = P_pv
+                        z_data[y_tilda, 9] = P_wt
 
                     else:
                         # 태양광 기업PPA 재생에너지 사용요금
-                        y_data[y_tilda, 8] += (sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
+                        P_pv = (sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
                                                    result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
                                                    for d in options.set_d
-                                                   for h in options.set_h) *
-                                               result_dict_s[s]['lambda_PPA_pv_y'][f"{y}"] + y_data[y_tilda - 1, 8])
-                        # 풍력 기업PPA 재생에너지 사용요금
-                        y_data[y_tilda, 9] += (sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
+                                                   for h in options.set_h) * result_dict_s[s]['lambda_PPA_pv_y'][f"{y}"]
+                                               + z_data[y_tilda - 1, 8])
+                        P_wt = (sum(result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y}"][f"{d}"][f"{h}"] -
                                                    result_dict_s[s]['p_ppa_onshore_y_d_h'][f"{y - 1}"][f"{d}"][f"{h}"]
                                                    for d in options.set_d
-                                                   for h in options.set_h) *
-                                               result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"] + y_data[
-                                                   y_tilda - 1, 9])
+                                                   for h in options.set_h) * result_dict_s[s]['lambda_PPA_onshore_y'][f"{y}"]
+                                               + z_data[y_tilda - 1, 9])
+
+                        y_data[y_tilda, 8] += P_pv
+                        # 풍력 기업PPA 재생에너지 사용요금
+                        y_data[y_tilda, 9] += P_wt
+                        z_data[y_tilda, 8] = P_pv
+                        z_data[y_tilda, 9] = P_wt
 
                     # 기업PPA 손실반영금
                     y_data[y_tilda, 10] += sum(result_dict_s[s]['p_ppa_pv_y_d_h'][f"{y}"][f"{d}"][f"{h}"] +
@@ -852,7 +860,7 @@ if __name__ == '__main__':
     solver_name = 'cplex'
     IFN = para.ReadInputData(options)
 
-    result = run_simulation(options, IFN)
-    result = run_analysis(options, IFN)
+    result_S = run_simulation(options, IFN)
+    result_A = run_analysis(options, IFN)
 
     print(f"run time : {time.time() - start}")
