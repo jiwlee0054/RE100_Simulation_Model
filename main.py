@@ -1,7 +1,9 @@
 import copy
 
 import lib.parameters as para
-import lib.re100_pln_model as re_pln
+# import lib.re100_pln_model as re_pln
+import lib.re100_pln_model_2 as re_pln
+
 import lib.PLOT
 
 import time
@@ -20,7 +22,6 @@ def run_portfolio(options, IFN, flag_msg):
     count = 0
     input_parameters_pulp = para.ParameterPulpFrom(options, IFN)
     result_dict = dict()
-
 
 
     result_dict['u_y'] = dict()
@@ -845,28 +846,52 @@ if __name__ == '__main__':
     start = time.time()
     options = para.ProbOptions()
 
-    if options.parallel_processing_flag:
-        loc_pp = f"{options.loc_result}/{options.date_result}"
-        file_pp = 'result_profile.pkl'
-        with open(f"{loc_pp}/{file_pp}", 'rb') as f:
-            result_profile = pickle.load(f)
-        if len([k for k, v in result_profile.items() if v == 0]) == 0:
-            quit()
-        else:
-            scenario_num = [k for k, v in result_profile.items() if v == 0][-1]
-            result_profile[scenario_num] = 1
-            with open(f"{loc_pp}/{file_pp}", 'wb') as f:
-                pickle.dump(result_profile, f, pickle.HIGHEST_PROTOCOL)
-            print(f"num : {scenario_num}")
-
-            options.scenario_num = f'{scenario_num}'
+    # if options.parallel_processing_flag:
+    #     loc_pp = f"{options.loc_result}/{options.date_result}"
+    #     file_pp = 'result_profile.pkl'
+    #     with open(f"{loc_pp}/{file_pp}", 'rb') as f:
+    #         result_profile = pickle.load(f)
+    #     if len([k for k, v in result_profile.items() if v == 0]) == 0:
+    #         quit()
+    #     else:
+    #         scenario_num = [k for k, v in result_profile.items() if v == 0][-1]
+    #         result_profile[scenario_num] = 1
+    #         with open(f"{loc_pp}/{file_pp}", 'wb') as f:
+    #             pickle.dump(result_profile, f, pickle.HIGHEST_PROTOCOL)
+    #         print(f"num : {scenario_num}")
+    #
+    #         options.scenario_num = f'{scenario_num}'
 
     # solver_name = 'gurobi'
     # solver_name = 'CBC'
     solver_name = 'cplex'
     IFN = para.ReadInputData(options)
+    ST = para.SetTime(options)
+    input_parameters_pyomo = para.ParameterPyomoForm(options, IFN)
 
-    result_S = run_simulation(options, IFN)
-    result_A = run_analysis(options, IFN)
 
-    print(f"run time : {time.time() - start}")
+    # 일단 대충 작성 및 확인하기
+    count = 0
+    net_capa_SG_g_y = dict()
+    net_capa_PPA_g_y = dict()
+    step_capa_SG_g_y = dict()
+    step_capa_PPA_g_y = dict()
+
+    for y in ST.set_historic_year:
+        for g in input_parameters_pyomo.set_sg_generator:
+            net_capa_SG_g_y[g, y] = 0
+            step_capa_SG_g_y[g, y] = 0
+        for g in input_parameters_pyomo.set_ppa_generator:
+            net_capa_PPA_g_y[g, y] = 0
+            step_capa_PPA_g_y[g, y] = 0
+
+    # portfolio_result = re_pln.solve_optimal_portfolio(options, input_parameters_pyomo, ST,
+    #                                                   solver_name,
+    #                                                   net_capa_SG_g_y, net_capa_PPA_g_y, step_capa_SG_g_y, step_capa_PPA_g_y)
+
+
+
+    # result_S = run_simulation(options, IFN)
+    # result_A = run_analysis(options, IFN)
+
+    print(f"run time : {round(time.time() - start)}s")

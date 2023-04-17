@@ -4,7 +4,7 @@ import numpy as np
 import math
 import copy
 
-from lib.parameters import ParameterPulpFrom, ReadInputData, ProbOptions
+from lib.parameters import ParameterPulpForm, ReadInputData, ProbOptions
 
 
 class PlotOpt:

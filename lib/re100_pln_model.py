@@ -2,11 +2,11 @@ import pulp as lp
 import numpy as np
 import copy
 
-from lib.parameters import ParameterPulpFrom, ReadInputData, ProbOptions
+from lib.parameters import ParameterPulpForm, ReadInputData, ProbOptions
 
 
 # Next group case
-def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpFrom, solver_name, result_dict):
+def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpForm, solver_name, result_dict):
     if options.customize_exemption_flag:
         zero_value = input_parameters_pulp.fill_value_to_dict(options, 0)
         lambda_nt_c_y = zero_value
@@ -208,18 +208,18 @@ def solve_re100_milp(options: ProbOptions, input_parameters_pulp: ParameterPulpF
         if y in [2022, 2023]:
             model += u_y[y] == 1
 
-        # 보완공급
-        model += c_tariff_used_y[y] == \
-                 lp.lpSum(c_tariff_pre_used_y_d_h[y, d, h] for d, h in set_d_h) + \
-                 lp.lpSum(c_tariff_pro_used_y_d_h[y, d, h] for d, h in set_d_h)
-        model += c_tariff_dema_y[y] == c_tariff_pre_dema_y[y] + c_tariff_pro_dema_y[y]
-
         # 보완공급 (dema 비용)
         model += c_tariff_pre_dema_y[y] * (1 / lambda_tariff_dema_pre_y[y]) - capacity_cs_contract_y[y] * 12 <= (1 - u_y[y]) * Big_M
         model += c_tariff_pre_dema_y[y] * (1 / lambda_tariff_dema_pre_y[y]) - capacity_cs_contract_y[y] * 12 >= - (1 - u_y[y]) * Big_M
 
         model += c_tariff_pro_dema_y[y] * (1 / lambda_tariff_dema_pro_y[y]) - capacity_cs_contract_y[y] * 12 <= u_y[y] * Big_M
         model += c_tariff_pro_dema_y[y] * (1 / lambda_tariff_dema_pro_y[y]) - capacity_cs_contract_y[y] * 12 >= - u_y[y] * Big_M
+
+        # 보완공급
+        model += c_tariff_used_y[y] == \
+                 lp.lpSum(c_tariff_pre_used_y_d_h[y, d, h] for d, h in set_d_h) + \
+                 lp.lpSum(c_tariff_pro_used_y_d_h[y, d, h] for d, h in set_d_h)
+        model += c_tariff_dema_y[y] == c_tariff_pre_dema_y[y] + c_tariff_pro_dema_y[y]
 
 
         # 인증서 비용
